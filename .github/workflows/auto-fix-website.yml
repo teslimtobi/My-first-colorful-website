@@ -1,0 +1,48 @@
+name: Auto Fix Website
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-and-fix:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Fix missing footer image
+        run: |
+          if ! grep -q 'src="footer-image.png"' index.html; then
+            echo "Footer image missing! Restoring..."
+            sed -i 's#</footer>#    <img src="footer-image.png" alt="Footer Banner for Nanji" class="footer-img">\n</footer>#' index.html
+          else
+            echo "Footer image present."
+          fi
+
+      - name: Fix missing stylesheet link
+        run: |
+          if ! grep -q '<link rel="stylesheet" href="style.css">' index.html; then
+            echo "Stylesheet link missing! Restoring..."
+            sed -i 's#</head>#    <link rel="stylesheet" href="style.css">\n</head>#' index.html
+          else
+            echo "Stylesheet link present."
+          fi
+
+      - name: Commit and Push Changes if Fixed
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [[ -n $(git status --porcelain index.html) ]]; then
+            git add index.html
+            git commit -m "auto-fix: restore missing footer image and/or stylesheet link"
+            git push
+          else
+            echo "No fixes needed. Repository is clean!"
+          fi
